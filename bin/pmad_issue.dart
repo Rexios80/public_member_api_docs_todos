@@ -15,7 +15,9 @@ class PmadIssue {
     final contents = await file.readAsString();
     final lines = contents.split('\n');
     final newContents = lines.mapIndexed((index, line) {
-      if (lineNumbers.contains(index)) {
+      // Indices in [lineNumbers] are 1 indexed
+      // Indices in [lines] are 0 indexed
+      if (lineNumbers.contains(index + 1)) {
         return '/// $content\n$line';
       } else {
         return line;
