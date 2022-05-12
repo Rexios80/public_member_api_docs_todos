@@ -54,7 +54,17 @@ void main(List<String> arguments) async {
       .join('')
       .trim();
 
-  final lintResult = LintResult.fromJson(jsonDecode(analyzeResult));
+  final LintResult lintResult;
+  try {
+    lintResult = LintResult.fromJson(jsonDecode(analyzeResult));
+  } catch (e) {
+    print(
+      redPen(
+        'Failed to parse lint result. This might mean there are no lint issues.',
+      ),
+    );
+    exit(1);
+  }
 
   final pmadDiagnostics =
       lintResult.diagnostics.where((diagnostic) => diagnostic.code == pmadCode);
