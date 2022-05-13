@@ -1,3 +1,3 @@
 ```console
-pmad -c "Document this"
+$ pmad -c "Document this"
 ```
