@@ -13,4 +13,7 @@ $ pmad
 $ pmad -c "comment contents"
 ```
 
-This tool doesn't insert the comments with proper formatting, so make sure to run `dart format .` after
+## Notes
+- This tool doesn't insert the comments with proper formatting, so make sure to run `dart format .` after
+
+- This tool also doesn't handle multi-line declarations properly, so the code might need some manual tweaking

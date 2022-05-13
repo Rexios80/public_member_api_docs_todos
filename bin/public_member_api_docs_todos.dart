@@ -46,6 +46,8 @@ void main(List<String> arguments) async {
 
   final content = args[optionContent] as String? ?? 'TODO';
 
+  print('Analyzing the current directory...');
+
   final analyzeProcessResult =
       await Process.run('dart', ['analyze', '--format=json']);
   final analyzeResult = (analyzeProcessResult.stdout as String)
