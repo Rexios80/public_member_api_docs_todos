@@ -104,4 +104,6 @@ void main(List<String> arguments) async {
 
   print(greenPen('Done!'));
   print(yellowPen('Run `dart format .` to format the files'));
+
+  exit(0);
 }
