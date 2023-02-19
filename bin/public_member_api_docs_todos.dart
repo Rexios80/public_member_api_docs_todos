@@ -1,14 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:ansicolor/ansicolor.dart';
 import 'package:args/args.dart';
 import 'package:collection/collection.dart';
-import 'package:path/path.dart';
+import 'package:parselyzer/parselyzer.dart';
 import 'package:pub_update_checker/pub_update_checker.dart';
-
-import 'lint_result.dart';
-import 'pmad_issue.dart';
 
 const pmadCode = 'public_member_api_docs';
 const optionContent = 'content';
@@ -50,16 +46,9 @@ void main(List<String> arguments) async {
 
   final analyzeProcessResult =
       await Process.run('dart', ['analyze', '--format=json']);
-  final analyzeResult = (analyzeProcessResult.stdout as String)
-      .split('\n')
-      .skip(1)
-      .join('')
-      .trim();
 
-  final LintResult lintResult;
-  try {
-    lintResult = LintResult.fromJson(jsonDecode(analyzeResult));
-  } catch (e) {
+  final lintResult = AnalyzerResult.fromConsole(analyzeProcessResult.stdout);
+  if (lintResult == null) {
     print(
       redPen(
         'Failed to parse lint result. This might mean there are no lint issues.',
@@ -68,14 +57,16 @@ void main(List<String> arguments) async {
     exit(1);
   }
 
-  final pmadDiagnostics =
-      lintResult.diagnostics.where((diagnostic) => diagnostic.code == pmadCode);
+  final pmadDiagnostics = lintResult.diagnostics
+      .where((diagnostic) => diagnostic.code == pmadCode)
+      .groupListsBy((e) => e.location.file);
 
   if (pmadDiagnostics.isEmpty) {
     print(greenPen('No $pmadCode issues found'));
     exit(0);
   } else {
-    print('Found ${pmadDiagnostics.length} issues');
+    final issues = pmadDiagnostics.values.expand((e) => e).length;
+    print('Found $issues issues');
   }
 
   // Ask the user for confirmation
@@ -86,20 +77,23 @@ void main(List<String> arguments) async {
     exit(1);
   }
 
-  final pmadIssues = pmadDiagnostics
-      .map((diagnostic) => diagnostic.location)
-      .groupListsBy((location) => location.file)
-      .entries
-      .map(
-        (e) => PmadIssue(
-          path: relative(e.key),
-          lineNumbers: e.value.map((e) => e.range.start.line),
-        ),
-      );
+  for (final entry in pmadDiagnostics.entries) {
+    final file = File(entry.key);
+    final lineNumbers = entry.value.map((e) => e.location.range.start.line);
 
-  for (final issue in pmadIssues) {
-    await issue.fix(content: content);
-    print('Fixed ${issue.path}');
+    final lines = file.readAsLinesSync();
+    final newContents = lines.mapIndexed((index, line) {
+      // Indices in [lineNumbers] are 1 indexed
+      // Indices in [lines] are 0 indexed
+      if (lineNumbers.contains(index + 1)) {
+        return '/// $content\n$line';
+      } else {
+        return line;
+      }
+    }).join('\n');
+
+    file.writeAsStringSync(newContents);
+    print('Fixed ${entry.key}');
   }
 
   print(greenPen('Done!'));
